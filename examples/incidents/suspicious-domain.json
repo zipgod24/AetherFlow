@@ -1,0 +1,6 @@
+{
+  "description": "Endpoint 10.0.4.17 is making periodic DNS queries for paypa1-secure-login.com (note the digit 1 instead of letter l) and downloading TLS certificates from the resolved IP 185.220.101.42. EDR flagged the parent process as a renamed `cmd.exe`. Determine whether this is a typosquat-based credential phishing campaign and recommend containment.",
+  "severity": "high",
+  "source": "cli",
+  "tags": { "asset": "workstation", "team": "soc" }
+}

@@ -1,0 +1,42 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test / coverage
+*.test
+*.out
+coverage.*
+
+# Go build cache
+go-build/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+*.key
+*.pem
+master.key
+
+# Local data
+data/
+volumes/
+
+# Logs
+*.log
+logs/
+
+# Helm
+deploy/helm/aetherflow/charts/
+deploy/helm/aetherflow/*.tgz

@@ -1,0 +1,26 @@
+/* Minimal augmentations to Tailwind. */
+.font-mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.event-row { transition: background-color 200ms ease; }
+.event-row.pulse { background-color: rgba(99,102,241,0.10); }
+
+.badge {
+  display: inline-flex; align-items: center; padding: 2px 8px;
+  border-radius: 999px; font-size: 10px; font-family: "JetBrains Mono", ui-monospace, monospace;
+  border: 1px solid currentColor; line-height: 1.2;
+}
+
+.evidence-card {
+  border-left: 2px solid #4338ca;
+  padding-left: 10px;
+}
+
+details > summary { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary .chev { transform: rotate(90deg); }
+.chev { display: inline-block; transition: transform 120ms ease; }
+
+/* Scrollbar */
+#timeline::-webkit-scrollbar { width: 8px; }
+#timeline::-webkit-scrollbar-thumb { background: #1c2540; border-radius: 4px; }
+#timeline::-webkit-scrollbar-track { background: transparent; }

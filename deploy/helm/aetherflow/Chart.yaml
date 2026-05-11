@@ -1,0 +1,17 @@
+apiVersion: v2
+name: aetherflow
+description: Event-driven multi-agent incident-response platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - rag
+  - rabbitmq
+  - agents
+  - llm
+  - dns
+home: https://github.com/zipgod24/aetherflow
+sources:
+  - https://github.com/zipgod24/aetherflow
+maintainers:
+  - name: AetherFlow maintainers

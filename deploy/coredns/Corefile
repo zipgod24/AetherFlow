@@ -1,0 +1,7 @@
+. {
+    file /etc/coredns/aether.local.zone aether.local
+    forward . 1.1.1.1 8.8.8.8
+    cache 5
+    errors
+    log
+}

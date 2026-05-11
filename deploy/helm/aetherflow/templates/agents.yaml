@@ -1,0 +1,9 @@
+{{- include "aetherflow.deployment" (dict "name" "orchestrator"      "component" .Values.components.orchestrator     "root" .) }}
+---
+{{- include "aetherflow.deployment" (dict "name" "retriever-agent"   "component" .Values.components.retrieverAgent   "root" .) }}
+---
+{{- include "aetherflow.deployment" (dict "name" "reasoner-agent"    "component" .Values.components.reasonerAgent    "root" .) }}
+---
+{{- include "aetherflow.deployment" (dict "name" "validator-agent"   "component" .Values.components.validatorAgent   "root" .) }}
+---
+{{- include "aetherflow.deployment" (dict "name" "executor-agent"    "component" .Values.components.executorAgent    "root" .) }}

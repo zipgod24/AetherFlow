@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AetherFlow — incident console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Inter"', 'ui-sans-serif', 'system-ui'], mono: ['"JetBrains Mono"', 'ui-monospace'] },
+          colors: {
+            ink: { 950: '#070a13', 900: '#0b101c', 800: '#121a2b', 700: '#1c2540', 600: '#2a3358' },
+            aether: { 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+            mint: { 400: '#34d399', 500: '#10b981' },
+            amber: { 400: '#fbbf24' },
+            rose: { 400: '#fb7185', 500: '#f43f5e' },
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-ink-950 text-slate-100 font-sans antialiased min-h-screen">
+  <header class="sticky top-0 z-20 bg-ink-950/80 backdrop-blur border-b border-ink-700">
+    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <svg viewBox="0 0 32 32" class="w-7 h-7 text-aether-400" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M16 3 L29 11 V21 L16 29 L3 21 V11 Z" />
+          <path d="M16 3 V29 M3 11 L29 21 M29 11 L3 21" />
+        </svg>
+        <span class="font-semibold tracking-tight">AetherFlow</span>
+        <span class="text-xs text-slate-500 ml-1">incident console</span>
+      </div>
+      <div class="flex-1"></div>
+      <div id="status" class="text-xs text-slate-400 flex items-center gap-2">
+        <span id="dot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+        <span id="statusText">connecting…</span>
+      </div>
+      <button id="demoBtn" class="text-sm bg-aether-600 hover:bg-aether-500 px-3 py-1.5 rounded font-medium">Run demo incident</button>
+      <button id="keysBtn" class="text-sm border border-ink-600 hover:border-aether-400 px-3 py-1.5 rounded">API Keys</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-12 gap-6">
+    <!-- left column: submit + corpus -->
+    <section class="col-span-12 lg:col-span-4 space-y-6">
+      <div class="rounded-xl border border-ink-700 bg-ink-900 p-5">
+        <h2 class="font-semibold text-slate-100">Submit incident</h2>
+        <p class="text-xs text-slate-500 mt-0.5">The retriever, reasoner, validator, and executor agents will process this asynchronously.</p>
+        <form id="incidentForm" class="mt-4 space-y-3">
+          <textarea id="description" rows="6" placeholder="Endpoint 10.0.4.17 is making periodic DNS queries for paypa1-secure-login.com. Is this malicious?"
+            class="w-full bg-ink-800 border border-ink-700 rounded p-3 text-sm font-mono text-slate-100 focus:outline-none focus:border-aether-500"></textarea>
+          <div class="flex items-center gap-3">
+            <label class="text-xs text-slate-400">Severity</label>
+            <select id="severity" class="bg-ink-800 border border-ink-700 rounded px-2 py-1 text-xs">
+              <option>low</option><option selected>medium</option><option>high</option><option>critical</option>
+            </select>
+            <div class="flex-1"></div>
+            <button class="bg-aether-600 hover:bg-aether-500 px-4 py-1.5 rounded text-sm font-medium">Submit</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="rounded-xl border border-ink-700 bg-ink-900 p-5">
+        <h2 class="font-semibold text-slate-100">Ingest into RAG corpus</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Paste a runbook or threat-intel note. It will be chunked, embedded, and indexed.</p>
+        <form id="corpusForm" class="mt-4 space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <input id="corpusSource" placeholder="source (e.g. mitre)" class="bg-ink-800 border border-ink-700 rounded px-2 py-1 text-xs" />
+            <input id="corpusTitle"  placeholder="title (e.g. T1071 application-layer protocol)" class="bg-ink-800 border border-ink-700 rounded px-2 py-1 text-xs" />
+          </div>
+          <textarea id="corpusText" rows="5" placeholder="Markdown or plain text…" class="w-full bg-ink-800 border border-ink-700 rounded p-2 text-xs font-mono"></textarea>
+          <div class="flex justify-end">
+            <button class="bg-mint-500 hover:bg-mint-400 text-ink-900 px-3 py-1.5 rounded text-sm font-medium">Ingest</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="rounded-xl border border-ink-700 bg-ink-900 p-5">
+        <h2 class="font-semibold text-slate-100">Architecture</h2>
+        <p class="text-xs text-slate-500 mt-0.5 mb-3">Choreographed agents on a RabbitMQ topic exchange.</p>
+        <ol class="text-xs text-slate-400 space-y-1.5 font-mono">
+          <li><span class="text-aether-400">①</span> gateway → <code>incident.created</code></li>
+          <li><span class="text-aether-400">②</span> retriever → DNS + hybrid RAG → <code>context.assembled</code></li>
+          <li><span class="text-aether-400">③</span> reasoner → LLM (BYO) → <code>analysis.completed</code></li>
+          <li><span class="text-aether-400">④</span> validator → schema + grounding + injection → <code>analysis.validated</code></li>
+          <li><span class="text-aether-400">⑤</span> executor → idempotent actions → <code>action.executed</code></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- right column: timeline -->
+    <section class="col-span-12 lg:col-span-8">
+      <div class="rounded-xl border border-ink-700 bg-ink-900">
+        <div class="flex items-center px-5 py-3 border-b border-ink-700">
+          <h2 class="font-semibold">Live timeline</h2>
+          <div class="flex-1"></div>
+          <div id="incidentFilter" class="text-xs text-slate-400">listening to: <span class="text-aether-400">all incidents</span></div>
+          <button id="clearBtn" class="ml-3 text-xs text-slate-400 hover:text-slate-200">clear</button>
+        </div>
+        <div id="timeline" class="divide-y divide-ink-800 max-h-[78vh] overflow-y-auto">
+          <div class="p-8 text-center text-slate-500 text-sm" id="emptyState">
+            No events yet. Submit an incident or click <span class="text-aether-400">Run demo incident</span>.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- API Keys drawer -->
+  <div id="keysDrawer" class="fixed inset-0 z-30 hidden">
+    <div class="absolute inset-0 bg-ink-950/70" id="keysBackdrop"></div>
+    <div class="absolute top-0 right-0 h-full w-full max-w-md bg-ink-900 border-l border-ink-700 shadow-2xl flex flex-col">
+      <div class="flex items-center px-5 py-3 border-b border-ink-700">
+        <h2 class="font-semibold">BYO LLM keys</h2>
+        <div class="flex-1"></div>
+        <button id="keysClose" class="text-slate-400 hover:text-slate-100">✕</button>
+      </div>
+      <div class="p-5 space-y-4 overflow-y-auto">
+        <p class="text-xs text-slate-400">Pick a provider and paste your key. Keys are encrypted at rest with AES-GCM. They never leave your AetherFlow deployment and are scoped per-incident.</p>
+        <div class="space-y-2">
+          <label class="block text-xs text-slate-300">Provider</label>
+          <select id="kProvider" class="w-full bg-ink-800 border border-ink-700 rounded px-2 py-2 text-sm">
+            <option value="ollama">Ollama (local, default)</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="openai_compatible">OpenAI-compatible (custom base URL)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300">Model</label>
+          <input id="kModel" placeholder="gpt-4o-mini | claude-3-5-sonnet-latest | llama3.1:8b-instruct" class="w-full bg-ink-800 border border-ink-700 rounded px-2 py-2 text-sm" />
+        </div>
+        <div id="kBaseURLWrap">
+          <label class="block text-xs text-slate-300">Base URL (optional)</label>
+          <input id="kBaseURL" placeholder="https://api.openai.com/v1" class="w-full bg-ink-800 border border-ink-700 rounded px-2 py-2 text-sm" />
+        </div>
+        <div id="kKeyWrap">
+          <label class="block text-xs text-slate-300">API Key</label>
+          <input id="kKey" type="password" placeholder="sk-…" class="w-full bg-ink-800 border border-ink-700 rounded px-2 py-2 text-sm font-mono" />
+          <p id="kStatus" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button id="kSave" class="bg-aether-600 hover:bg-aether-500 px-4 py-2 rounded text-sm font-medium">Save</button>
+          <button id="kReset" class="border border-ink-700 hover:border-aether-400 px-4 py-2 rounded text-sm">Use cluster default</button>
+        </div>
+        <div class="mt-4 text-xs text-slate-500 border-t border-ink-800 pt-3">
+          <div class="font-medium text-slate-300 mb-1">Current</div>
+          <pre id="kCurrent" class="font-mono text-[11px] whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

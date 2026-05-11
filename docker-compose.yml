@@ -1,0 +1,128 @@
+# AetherFlow local dev stack.
+#
+# `make up` boots this whole thing. Boot order matters; healthchecks wait for
+# rabbit + postgres to be ready before agents start.
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: aether-rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: aether
+      RABBITMQ_DEFAULT_PASS: aether
+    ports:
+      - "5672:5672"
+      - "15672:15672"  # management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: aether-postgres
+    environment:
+      POSTGRES_USER: aether
+      POSTGRES_PASSWORD: aether
+      POSTGRES_DB: aether
+    ports:
+      - "5432:5432"
+    volumes:
+      - aether-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aether -d aether"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: aether-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - aether-ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.55
+    container_name: aether-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # UI
+      - "4318:4318"   # OTLP HTTP
+
+  coredns:
+    image: coredns/coredns:1.11.1
+    container_name: aether-coredns
+    command: ["-conf", "/etc/coredns/Corefile"]
+    volumes:
+      - ./deploy/coredns:/etc/coredns:ro
+    ports:
+      - "1053:53/udp"
+      - "1053:53/tcp"
+
+  api-gateway:
+    build:
+      context: .
+      args:
+        BIN: api-gateway
+    container_name: aether-gateway
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment: &common_env
+      RABBITMQ_URL: amqp://aether:aether@rabbitmq:5672/
+      POSTGRES_DSN: postgres://aether:aether@postgres:5432/aether?sslmode=disable
+      OLLAMA_BASE_URL: http://ollama:11434
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      AETHER_MASTER_KEY: ${AETHER_MASTER_KEY:-}
+      AETHER_DNS_RESOLVER: coredns:53
+    ports:
+      - "8080:8080"
+
+  retriever-agent:
+    build: { context: ., args: { BIN: retriever-agent } }
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment: *common_env
+    deploy:
+      replicas: 2
+
+  reasoner-agent:
+    build: { context: ., args: { BIN: reasoner-agent } }
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      ollama:   { condition: service_started }
+    environment: *common_env
+
+  validator-agent:
+    build: { context: ., args: { BIN: validator-agent } }
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    environment: *common_env
+
+  executor-agent:
+    build: { context: ., args: { BIN: executor-agent } }
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    environment: *common_env
+
+  orchestrator:
+    build: { context: ., args: { BIN: orchestrator } }
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    environment: *common_env
+
+volumes:
+  aether-pgdata: {}
+  aether-ollama: {}

@@ -1,0 +1,39 @@
+image:
+  registry: ghcr.io/zipgod24
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# External dependencies — chart does not deploy these, only points at them.
+# Use Helm subcharts (rabbitmq, postgresql) or your existing cluster services.
+externalServices:
+  rabbitmqURL: amqp://aether:aether@rabbitmq.aetherflow.svc.cluster.local:5672/
+  postgresDSN: postgres://aether:aether@postgres.aetherflow.svc.cluster.local:5432/aether?sslmode=disable
+  ollamaBaseURL: http://ollama.aetherflow.svc.cluster.local:11434
+  otlpEndpoint: http://jaeger-collector.observability.svc.cluster.local:4318
+
+# Master key — required for BYO LLM keys. Generate with `make keygen` and
+# store as a SealedSecret or external secret. The chart references the env
+# via a Secret named `aetherflow-master-key` with key `key`.
+masterKeySecret: aetherflow-master-key
+
+llm:
+  provider: ollama
+  ollama:
+    chatModel: llama3.1:8b-instruct
+    embedModel: nomic-embed-text
+
+components:
+  apiGateway:
+    replicas: 2
+    serviceType: ClusterIP
+    httpPort: 8080
+  orchestrator: { replicas: 1 }
+  retrieverAgent: { replicas: 3 }
+  reasonerAgent:  { replicas: 2 }
+  validatorAgent: { replicas: 2 }
+  executorAgent:  { replicas: 1 }
+
+resources:
+  default:
+    requests: { cpu: "100m", memory: "128Mi" }
+    limits:   { cpu: "500m", memory: "512Mi" }

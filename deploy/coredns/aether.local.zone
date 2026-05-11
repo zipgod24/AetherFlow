@@ -1,0 +1,27 @@
+$ORIGIN aether.local.
+$TTL 10
+
+@                IN SOA  ns1.aether.local. admin.aether.local. (
+                          2026051101 ; serial
+                          1m         ; refresh
+                          30s        ; retry
+                          1h         ; expire
+                          10s )      ; minimum TTL
+
+@                IN NS   ns1.aether.local.
+ns1              IN A    127.0.0.1
+
+; ----- service discovery SRVs (dev fixtures) -----
+_amqp._tcp.aether.local.   IN SRV 10 100 5672  rabbitmq.aether.local.
+_otlp._tcp.aether.local.   IN SRV 10 100 4318  jaeger.aether.local.
+_pgsql._tcp.aether.local.  IN SRV 10 100 5432  postgres.aether.local.
+
+rabbitmq.aether.local.     IN A    127.0.0.1
+postgres.aether.local.     IN A    127.0.0.1
+jaeger.aether.local.       IN A    127.0.0.1
+
+; ----- demo threat-intel zone -----
+; cat is "category", conf is confidence in [0,1], src tags the feed.
+paypa1-secure-login.com.threats.aether.local.   IN TXT "cat=phishing;conf=0.94;src=aether-demo-feed"
+evil-c2-domain.test.threats.aether.local.       IN TXT "cat=c2;conf=0.88;src=aether-demo-feed"
+185.220.101.42.threats.aether.local.            IN TXT "cat=tor_exit;conf=0.99;src=aether-demo-feed"

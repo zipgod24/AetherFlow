@@ -1,0 +1,18 @@
+{{- include "aetherflow.deployment" (dict "name" "api-gateway" "component" .Values.components.apiGateway "root" .) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aetherflow-api-gateway
+  labels:
+    app.kubernetes.io/name: aetherflow
+    app.kubernetes.io/component: api-gateway
+spec:
+  type: {{ .Values.components.apiGateway.serviceType }}
+  selector:
+    app.kubernetes.io/name: aetherflow
+    app.kubernetes.io/component: api-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ .Values.components.apiGateway.httpPort }}
