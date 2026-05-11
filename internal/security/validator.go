@@ -37,9 +37,12 @@ func (r Result) HighestSeverity() string {
 }
 
 var (
-	// Classic prompt-injection lexicon. Case-insensitive, anchored only loosely.
-	rxIgnorePrev = regexp.MustCompile(`(?i)\bignore (?:all|the|any)?\s*(?:previous|prior|above)\s+(?:instructions|prompts|messages)\b`)
-	rxOverride   = regexp.MustCompile(`(?i)\b(?:disregard|forget|override)\s+(?:all|the|any|previous)?\s*(?:instructions|prompts)\b`)
+	// Classic prompt-injection lexicon. Case-insensitive, with a small token
+	// window between the trigger verb and the target noun so phrasings like
+	// "disregard ALL prior instructions" are caught alongside the canonical
+	// "disregard previous instructions".
+	rxIgnorePrev = regexp.MustCompile(`(?i)\bignore\b(?:\s+\S+){0,3}\s+(?:instructions|prompts|messages|rules|context)\b`)
+	rxOverride   = regexp.MustCompile(`(?i)\b(?:disregard|forget|override)\b(?:\s+\S+){0,3}\s+(?:instructions|prompts|messages|rules|context)\b`)
 	rxRoleFlip   = regexp.MustCompile(`(?i)\b(you are now|act as|pretend to be)\s+(?:an?\s+)?(?:admin|root|developer|jailbroken|dan|unrestricted)`)
 	rxSysImpers  = regexp.MustCompile(`(?i)^\s*(?:###\s*)?system\s*:`)
 	rxToolHijack = regexp.MustCompile(`(?i)\b(?:execute|run|invoke)\b.*\b(?:rm\s+-rf|/etc/passwd|secret_key|api_key)\b`)

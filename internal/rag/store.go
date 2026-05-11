@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pgvector/pgvector-go"
 )
 
 // Document is the top-level ingest unit.
@@ -109,8 +108,8 @@ func (s *Store) IngestDocument(ctx context.Context, doc Document, chunks []Chunk
 	for i, c := range chunks {
 		_, err := tx.Exec(ctx,
 			`INSERT INTO chunks (id, document_id, ordinal, content, embedding)
-			 VALUES ($1, $2, $3, $4, $5)`,
-			uuid.New(), doc.ID, c.Ordinal, c.Content, pgvector.NewVector(embeddings[i]),
+			 VALUES ($1, $2, $3, $4, $5::vector)`,
+			uuid.New(), doc.ID, c.Ordinal, c.Content, vectorText(embeddings[i]),
 		)
 		if err != nil {
 			return fmt.Errorf("insert chunk %d: %w", i, err)
@@ -123,11 +122,11 @@ func (s *Store) IngestDocument(ctx context.Context, doc Document, chunks []Chunk
 func (s *Store) DenseSearch(ctx context.Context, query []float32, k int) ([]Hit, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT c.id, c.document_id, d.source, d.title, COALESCE(d.url, ''), c.content,
-		       1 - (c.embedding <=> $1) AS score
+		       1 - (c.embedding <=> $1::vector) AS score
 		FROM chunks c JOIN documents d ON d.id = c.document_id
-		ORDER BY c.embedding <=> $1
+		ORDER BY c.embedding <=> $1::vector
 		LIMIT $2`,
-		pgvector.NewVector(query), k,
+		vectorText(query), k,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("dense search: %w", err)

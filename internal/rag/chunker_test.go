@@ -12,7 +12,7 @@ func TestChunkerRespectsTarget(t *testing.T) {
 		words[i] = "word"
 	}
 	text := strings.Join(words, " ")
-	chunks := Chunk(text, ChunkOptions{TargetTokens: 100, Overlap: 0})
+	chunks := Split(text, ChunkOptions{TargetTokens: 100, Overlap: 0})
 	if len(chunks) < 9 || len(chunks) > 12 {
 		t.Fatalf("expected ~10 chunks, got %d", len(chunks))
 	}
@@ -24,7 +24,7 @@ func TestChunkerOverlap(t *testing.T) {
 		parts = append(parts, strings.Repeat("alpha ", 80))
 	}
 	text := strings.Join(parts, "\n\n")
-	chunks := Chunk(text, ChunkOptions{TargetTokens: 100, Overlap: 20})
+	chunks := Split(text, ChunkOptions{TargetTokens: 100, Overlap: 20})
 	if len(chunks) < 2 {
 		t.Fatalf("expected >=2 chunks, got %d", len(chunks))
 	}
@@ -43,7 +43,7 @@ func TestChunkerOverlap(t *testing.T) {
 
 func TestChunkerOrdinalsContiguous(t *testing.T) {
 	text := strings.Repeat("alpha beta gamma delta\n\n", 30)
-	chunks := Chunk(text, DefaultChunkOptions())
+	chunks := Split(text, DefaultChunkOptions())
 	for i, c := range chunks {
 		if c.Ordinal != i {
 			t.Fatalf("ordinal[%d] = %d", i, c.Ordinal)

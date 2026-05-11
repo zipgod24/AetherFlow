@@ -10,6 +10,6 @@ func BenchmarkChunk_400_60(b *testing.B) {
 	opts := ChunkOptions{TargetTokens: 400, Overlap: 60}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = Chunk(body, opts)
+		_ = Split(body, opts)
 	}
 }

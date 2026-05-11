@@ -331,7 +331,7 @@ func (g *gateway) ingestCorpus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "title and text are required", http.StatusBadRequest)
 		return
 	}
-	chunks := rag.Chunk(req.Text, rag.DefaultChunkOptions())
+	chunks := rag.Split(req.Text, rag.DefaultChunkOptions())
 	texts := make([]string, len(chunks))
 	for i, c := range chunks {
 		texts[i] = c.Content
