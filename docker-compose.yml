@@ -6,19 +6,43 @@
 services:
 
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    # On Docker Desktop for Mac, the official rabbitmq image's entrypoint
+    # creates /var/lib/rabbitmq/.erlang.cookie as root with mode 0600 BEFORE
+    # switching to the rabbitmq user — which then cannot read the file.
+    # We pre-create the cookie with correct ownership, then chain into the
+    # official entrypoint.
+    image: rabbitmq:3.13-management
     container_name: aether-rabbit
+    hostname: aether-rabbit
     environment:
       RABBITMQ_DEFAULT_USER: aether
       RABBITMQ_DEFAULT_PASS: aether
     ports:
       - "5672:5672"
       - "15672:15672"  # management UI
+    tmpfs:
+      - /var/lib/rabbitmq
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        mkdir -p /var/lib/rabbitmq
+        echo "aetherErlCookieAlphaNumOnly" > /var/lib/rabbitmq/.erlang.cookie
+        chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+        chmod 0400 /var/lib/rabbitmq/.erlang.cookie
+        chown -R rabbitmq:rabbitmq /var/lib/rabbitmq
+        exec docker-entrypoint.sh rabbitmq-server
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      # check_port_connectivity verifies the AMQP listener (port 5672) is
+      # actually accepting connections — not just that the Erlang node is up.
+      # The default `ping` check returns healthy too early and clients hit
+      # connection-refused on first dial.
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
       interval: 5s
-      timeout: 5s
-      retries: 12
+      timeout: 10s
+      retries: 24
+      start_period: 30s
 
   postgres:
     image: pgvector/pgvector:pg16
@@ -75,6 +99,7 @@ services:
       args:
         BIN: api-gateway
     container_name: aether-gateway
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -85,11 +110,13 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       AETHER_MASTER_KEY: ${AETHER_MASTER_KEY:-}
       AETHER_DNS_RESOLVER: coredns:53
+      GATEWAY_UI_PATH: /web/ui
     ports:
       - "8080:8080"
 
   retriever-agent:
     build: { context: ., args: { BIN: retriever-agent } }
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -99,6 +126,7 @@ services:
 
   reasoner-agent:
     build: { context: ., args: { BIN: reasoner-agent } }
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
       ollama:   { condition: service_started }
@@ -106,12 +134,14 @@ services:
 
   validator-agent:
     build: { context: ., args: { BIN: validator-agent } }
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
     environment: *common_env
 
   executor-agent:
     build: { context: ., args: { BIN: executor-agent } }
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
       postgres: { condition: service_healthy }
@@ -119,6 +149,7 @@ services:
 
   orchestrator:
     build: { context: ., args: { BIN: orchestrator } }
+    restart: unless-stopped
     depends_on:
       rabbitmq: { condition: service_healthy }
     environment: *common_env

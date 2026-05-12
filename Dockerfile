@@ -19,8 +19,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 
 # -------- runtime --------
 FROM gcr.io/distroless/static:nonroot
-COPY --from=builder /out/app /app
-# Some binaries (api-gateway) want to serve static assets in /app/web/ui
-COPY --from=builder /src/web/ui /app/web/ui
+COPY --from=builder /out/app /aether
+# Some binaries (api-gateway) serve static assets from /web/ui. The Go default
+# config resolves GATEWAY_UI_PATH as ./web/ui, which on this image's cwd of /
+# becomes /web/ui — matching the COPY destination below.
+COPY --from=builder /src/web/ui /web/ui
 USER nonroot:nonroot
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/aether"]
